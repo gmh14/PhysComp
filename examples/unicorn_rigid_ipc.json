@@ -1,0 +1,25 @@
+{
+    "scene_type": "distance_barrier_rb_problem",
+    "timestep": 0.01,
+    "max_time": 5,
+    "rigid_body_problem": {
+        "coefficient_friction": 0.1,
+        "gravity": [0, -9.8, 0],
+        "rigid_bodies": [
+            {
+            "mesh": "/home/mhg/Projects/libpgo/projects/PhysComp/examples/unicorn/stand_opt_rest_scaled.obj",
+            "position": [2.5, 5.0, 0],
+            "rotation": [0, 90, 90],
+            "linear_velocity": [0, 0, 0],
+            "angular_velocity": [0, 0, 0],
+            "density": 1
+        }, {
+            "mesh": "plane.obj",
+            "position": [0, 0, 0],
+            "rotation": [0, 0, 0],
+            "type": "static",
+            "scale": 1,
+            "density": 1
+        }]
+    }
+}

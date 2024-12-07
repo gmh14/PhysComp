@@ -88,7 +88,7 @@ def matching(save_folder):
     surfmesh_opt_rest.export(os.path.join(save_folder, "opt_rest.obj"))
 
 
-def stablize(save_folder):
+def stabilize(save_folder):
     density = 1000
     E = 100000000 # unicorn
     nu = 0.45
@@ -176,5 +176,5 @@ if __name__ == "__main__":
     # stability
     mesh_name = "unicorn"
     save_folder = os.path.join("examples", "neurips2024", mesh_name)
-    stablize(save_folder)
+    stabilize(save_folder)
     
