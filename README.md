@@ -10,7 +10,7 @@ We present a computational framework that transforms single images into 3D physi
 ## Installation
 
 ### Prerequisites
-- __libpgo:__ We developed the code using [libpgo](https://github.com/bohanwang/libpgo/tree/physcomp) as the infrastructure. follow the following link to create conda environment and install libpgo.
+- __libpgo:__ We developed the code using [libpgo](https://github.com/bohanwang/libpgo/tree/physcomp) as the infrastructure. Follow the instructions to create conda environment and install libpgo.
 ```bash
 git clone git@github.com:bohanwang/libpgo.git
 git checkout physcomp
