@@ -1,4 +1,4 @@
-#include "physcomp_c.h"
+#include "physcomp.h"
 
 #include "EigenMKLPardisoSupport.h"
 #include "tetMeshGeo.h"
