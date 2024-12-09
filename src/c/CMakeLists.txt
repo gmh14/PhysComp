@@ -25,12 +25,13 @@ target_compile_definitions(physcomp_c PUBLIC
   $<INSTALL_INTERFACE:LIBPGO_C_LOAD_DLL>
 )
 
-target_link_libraries(physcomp_c PUBLIC pgo_c)
 foreach(lib ${PGO_GLOBAL_LIBRARY_TARGETS})
   if(TARGET ${lib})
     target_link_libraries(physcomp_c PRIVATE ${lib})
   endif()
 endforeach()
+
+target_link_libraries(physcomp_c PUBLIC pgo_c)
 
 add_flag_poxis(physcomp_c PRIVATE -fvisibility=hidden)
 add_link_flag(physcomp_c GNU All -Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/physcomp_c.version)

@@ -33,7 +33,7 @@
 
 #include "deformationModelAssemblerElasticFullPlastic.h"
 #include "quadraticPotentialEnergy.h"
-#include "centerOfMassEnergy.h"
+#include "centerOfMassMatchingEnergy.h"
 #include "cgalInterface.h"
 
 #include <tbb/enumerable_thread_specific.h>
@@ -522,7 +522,7 @@ pgoCenterOfMassEnergyStructHandle physcomp_create_center_of_mass_energy(pgoTetMe
   ES::M3d projMat = ES::M3d::Identity();
   projMat(2, 2) = 0.0;
 
-  pgo::SolidDeformationModel::CenterOfMassEnergy *comEnergy = new pgo::SolidDeformationModel::CenterOfMassEnergy(tetMeshGeo, tgtCoMVec, projMat);
+  pgo::PredefinedPotentialEnergies::CenterOfMassMatchingEnergy *comEnergy = new pgo::PredefinedPotentialEnergies::CenterOfMassMatchingEnergy(tetMeshGeo, tgtCoMVec, projMat);
 
   return reinterpret_cast<pgoCenterOfMassEnergyStructHandle>(comEnergy);
 }
@@ -531,12 +531,12 @@ void physcomp_center_of_mass_energy_get_tgtCoM_projMat(pgoCenterOfMassEnergyStru
 {
   namespace ES = pgo::EigenSupport;
 
-  pgo::SolidDeformationModel::CenterOfMassEnergy *comEnergy = reinterpret_cast<pgo::SolidDeformationModel::CenterOfMassEnergy *>(comEnergyHandle);
+  pgo::PredefinedPotentialEnergies::CenterOfMassMatchingEnergy *comEnergy = reinterpret_cast<pgo::PredefinedPotentialEnergies::CenterOfMassMatchingEnergy *>(comEnergyHandle);
 
-  ES::Mp<ES::V3d>(tgtCoM, 3) = comEnergy->m_tgtCoM;
+  ES::Mp<ES::V3d>(tgtCoM, 3) = comEnergy->getTgtCoM();
   for (int i = 0; i < 3; i++) {
     for (int j = 0; j < 3; j++) {
-      projMat[i * 3 + j] = comEnergy->m_projMat(i, j);
+      projMat[i * 3 + j] = comEnergy->getProjMat()(i, j);
     }
   }
 }
@@ -545,7 +545,7 @@ double physcomp_center_of_mass_energy_gradient(pgoCenterOfMassEnergyStructHandle
 {
   namespace ES = pgo::EigenSupport;
 
-  pgo::SolidDeformationModel::CenterOfMassEnergy *comEnergy = reinterpret_cast<pgo::SolidDeformationModel::CenterOfMassEnergy *>(comEnergyHandle);
+  pgo::PredefinedPotentialEnergies::CenterOfMassMatchingEnergy *comEnergy = reinterpret_cast<pgo::PredefinedPotentialEnergies::CenterOfMassMatchingEnergy *>(comEnergyHandle);
 
   ES::VXd xVec(numVtx * 3);
   for (int i = 0; i < numVtx * 3; i++) {
@@ -556,7 +556,7 @@ double physcomp_center_of_mass_energy_gradient(pgoCenterOfMassEnergyStructHandle
 
   double energy;
   ES::V3d comVec;
-  comEnergy->func_gradient(xVec, gradVec, energy, comVec);
+  comEnergy->compute_com_and_energy_and_grad(xVec, comVec, energy, gradVec);
 
   ES::Mp<ES::VXd>(grad, numVtx * 3) = gradVec;
   ES::Mp<ES::V3d>(com, 3) = comVec;
