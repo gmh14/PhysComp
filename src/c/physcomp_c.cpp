@@ -277,7 +277,7 @@ pgoQuasiStaticSimStructHandle physcomp_create_quastic_static_sim_create_energies
   // gravity
   simStruct->fext.setZero(n3);
   for (int vi = 0; vi < n; vi++) {
-    fext.segment<3>(vi * 3) = ES::V3d(0, 0, 9.8) * vertexMasses[vi];
+    simStruct->fext.segment<3>(vi * 3) = ES::V3d(0, 0, 9.8) * vertexMasses[vi];
   }
 
   std::shared_ptr<pgo::PredefinedPotentialEnergies::LinearPotentialEnergy> externalForcesEnergy = std::make_shared<pgo::PredefinedPotentialEnergies::LinearPotentialEnergy>(simStruct->fext);
