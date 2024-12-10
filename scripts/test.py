@@ -115,6 +115,7 @@ def stabilize(save_folder):
     
     init_trimesh = trimesh.load_mesh(os.path.join(save_folder, "make_it_stand_init.obj"))
     init_trimeshgeo = pypgo.create_trimeshgeo(init_trimesh.vertices.flatten(), init_trimesh.faces.flatten())
+    
     min_z = pypgo.stablity_preprocess(init_trimeshgeo, os.path.join(save_folder, "make_it_stand_init_flattened.obj"))
     
     surfmesh_flattened = trimesh.load_mesh(os.path.join(
@@ -170,11 +171,11 @@ if __name__ == "__main__":
 
     # matching
     mesh_name = "e547b70f8bb549e3ad5cea9a4eed800d"
-    save_folder = os.path.join("examples", "neurips2024", mesh_name)
+    save_folder = os.path.join("examples", mesh_name)
     matching(save_folder)
     
     # stability
     mesh_name = "unicorn"
-    save_folder = os.path.join("examples", "neurips2024", mesh_name)
+    save_folder = os.path.join("examples", mesh_name)
     stabilize(save_folder)
     

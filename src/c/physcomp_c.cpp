@@ -33,7 +33,7 @@
 
 #include "deformationModelAssemblerElasticFullPlastic.h"
 #include "quadraticPotentialEnergy.h"
-#include "centerOfMassEnergy.h"
+#include "centerOfMassMatchingEnergy.h"
 #include "cgalInterface.h"
 
 #include <tbb/enumerable_thread_specific.h>
@@ -63,10 +63,12 @@ struct pgoQuasiStaticSimStruct
 
   std::shared_ptr<pgo::NonlinearOptimization::NewtonRaphsonSolver> solverPosOnly;
   std::shared_ptr<pgo::EigenSupport::EigenMKLPardisoSupport> linearSolver;
+
+  pgo::EigenSupport::VXd fext;
 };
 
 //// NeurIPS
-void pgo_create_quastic_static_sim(pgoTetMeshStructHandle tetmeshHandle, int *fixedVerticesIDs, int numFixedVertices, double *xOpt, double *plasticityParam, bool with_gravity)
+void physcomp_create_quastic_static_sim(pgoTetMeshStructHandle tetmeshHandle, int *fixedVerticesIDs, int numFixedVertices, double *xOpt, double *plasticityParam, bool with_gravity)
 {
   namespace ES = pgo::EigenSupport;
 
@@ -174,7 +176,7 @@ void pgo_create_quastic_static_sim(pgoTetMeshStructHandle tetmeshHandle, int *fi
   energyAll->printEnergy(x);
 }
 
-pgoQuasiStaticSimStructHandle pgo_create_quastic_static_sim_create_energies(pgoTetMeshStructHandle tetmeshRestHandle, pgoTetMeshStructHandle tetmeshInitHandle, int *fixedVerticesIDs, int numFixedVertices, double *xOpt, bool withGravity)
+pgoQuasiStaticSimStructHandle physcomp_create_quastic_static_sim_create_energies(pgoTetMeshStructHandle tetmeshRestHandle, pgoTetMeshStructHandle tetmeshInitHandle, int *fixedVerticesIDs, int numFixedVertices, double *xOpt, bool withGravity)
 {
   namespace ES = pgo::EigenSupport;
 
@@ -270,13 +272,15 @@ pgoQuasiStaticSimStructHandle pgo_create_quastic_static_sim_create_energies(pgoT
     }
   }
 
+  pgoQuasiStaticSimStruct *simStruct = new pgoQuasiStaticSimStruct;
+
   // gravity
-  ES::VXd fext(n3);
+  simStruct->fext.setZero(n3);
   for (int vi = 0; vi < n; vi++) {
-    fext.segment<3>(vi * 3) = ES::V3d(0, 0, 9.8) * vertexMasses[vi];
+    simStruct->fext.segment<3>(vi * 3) = ES::V3d(0, 0, 9.8) * vertexMasses[vi];
   }
 
-  std::shared_ptr<pgo::PredefinedPotentialEnergies::LinearPotentialEnergy> externalForcesEnergy = std::make_shared<pgo::PredefinedPotentialEnergies::LinearPotentialEnergy>(fext);
+  std::shared_ptr<pgo::PredefinedPotentialEnergies::LinearPotentialEnergy> externalForcesEnergy = std::make_shared<pgo::PredefinedPotentialEnergies::LinearPotentialEnergy>(simStruct->fext);
 
   // plasicity smoothness
   ES::SpMatD L;
@@ -331,7 +335,6 @@ pgoQuasiStaticSimStructHandle pgo_create_quastic_static_sim_create_energies(pgoT
   solver->analyze(df_dx);
 
   ///
-  pgoQuasiStaticSimStruct *simStruct = new pgoQuasiStaticSimStruct;
   simStruct->simMesh = simMesh;
   simStruct->dmm = dmm;
 
@@ -356,7 +359,6 @@ pgoQuasiStaticSimStructHandle pgo_create_quastic_static_sim_create_energies(pgoT
   simStruct->solverPosOnly = solverPosOnly;
 
   simStruct->linearSolver = solver;
-
   for (int i = 0; i < n3 + nele * 6; i++) {
     xOpt[i] = x[i];
   }
@@ -364,7 +366,7 @@ pgoQuasiStaticSimStructHandle pgo_create_quastic_static_sim_create_energies(pgoT
   return reinterpret_cast<pgoQuasiStaticSimStructHandle>(simStruct);
 }
 
-void pgo_quastic_static_gauss_newton_gradient(pgoQuasiStaticSimStructHandle quasiStaticStruct, double *dR_dx_data, double *var, int nVtx, int nElem, double *GNGrad, bool hasSmoothness)
+void physcomp_quastic_static_gauss_newton_gradient(pgoQuasiStaticSimStructHandle quasiStaticStruct, double *dR_dx_data, double *var, int nVtx, int nElem, double *GNGrad, bool hasSmoothness)
 {
   namespace ES = pgo::EigenSupport;
 
@@ -414,7 +416,7 @@ void pgo_quastic_static_gauss_newton_gradient(pgoQuasiStaticSimStructHandle quas
   ES::Mp<ES::VXd>(GNGrad, nElem * 6) = GNGradVec;
 }
 
-void pgo_project_plastic_param(pgoQuasiStaticSimStructHandle quasiStaticStruct, int nVtx, int nElem, double *xOpt, double zeroThreshold)
+void physcomp_project_plastic_param(pgoQuasiStaticSimStructHandle quasiStaticStruct, int nVtx, int nElem, double *xOpt, double zeroThreshold)
 {
   namespace ES = pgo::EigenSupport;
 
@@ -433,7 +435,7 @@ void pgo_project_plastic_param(pgoQuasiStaticSimStructHandle quasiStaticStruct, 
   }
 }
 
-void pgo_static_eq_step(pgoQuasiStaticSimStructHandle quasiStaticStruct, double *var, int nVtx, int nElem, double *varOut, int verbose)
+void physcomp_static_eq_step(pgoQuasiStaticSimStructHandle quasiStaticStruct, double *var, int nVtx, int nElem, double *varOut, int verbose)
 {
   namespace ES = pgo::EigenSupport;
 
@@ -450,7 +452,7 @@ void pgo_static_eq_step(pgoQuasiStaticSimStructHandle quasiStaticStruct, double 
   }
 }
 
-pgoCenterOfMassEnergyStructHandle pgo_create_center_of_mass_energy(pgoTetMeshStructHandle tetmeshHandle)
+pgoCenterOfMassEnergyStructHandle physcomp_create_center_of_mass_energy(pgoTetMeshStructHandle tetmeshHandle)
 {
   namespace ES = pgo::EigenSupport;
   pgo::VolumetricMeshes::TetMesh *tetMesh = reinterpret_cast<pgo::VolumetricMeshes::TetMesh *>(tetmeshHandle);
@@ -522,30 +524,30 @@ pgoCenterOfMassEnergyStructHandle pgo_create_center_of_mass_energy(pgoTetMeshStr
   ES::M3d projMat = ES::M3d::Identity();
   projMat(2, 2) = 0.0;
 
-  pgo::SolidDeformationModel::CenterOfMassEnergy *comEnergy = new pgo::SolidDeformationModel::CenterOfMassEnergy(tetMeshGeo, tgtCoMVec, projMat);
+  pgo::PredefinedPotentialEnergies::CenterOfMassMatchingEnergy *comEnergy = new pgo::PredefinedPotentialEnergies::CenterOfMassMatchingEnergy(tetMeshGeo, tgtCoMVec, projMat);
 
   return reinterpret_cast<pgoCenterOfMassEnergyStructHandle>(comEnergy);
 }
 
-void pgo_center_of_mass_energy_get_tgtCoM_projMat(pgoCenterOfMassEnergyStructHandle comEnergyHandle, double *tgtCoM, double *projMat)
+void physcomp_center_of_mass_energy_get_tgtCoM_projMat(pgoCenterOfMassEnergyStructHandle comEnergyHandle, double *tgtCoM, double *projMat)
 {
   namespace ES = pgo::EigenSupport;
 
-  pgo::SolidDeformationModel::CenterOfMassEnergy *comEnergy = reinterpret_cast<pgo::SolidDeformationModel::CenterOfMassEnergy *>(comEnergyHandle);
+  pgo::PredefinedPotentialEnergies::CenterOfMassMatchingEnergy *comEnergy = reinterpret_cast<pgo::PredefinedPotentialEnergies::CenterOfMassMatchingEnergy *>(comEnergyHandle);
 
-  ES::Mp<ES::V3d>(tgtCoM, 3) = comEnergy->m_tgtCoM;
+  ES::Mp<ES::V3d>(tgtCoM, 3) = comEnergy->getTgtCoM();
   for (int i = 0; i < 3; i++) {
     for (int j = 0; j < 3; j++) {
-      projMat[i * 3 + j] = comEnergy->m_projMat(i, j);
+      projMat[i * 3 + j] = comEnergy->getProjMat()(i, j);
     }
   }
 }
 
-double pgo_center_of_mass_energy_gradient(pgoCenterOfMassEnergyStructHandle comEnergyHandle, const double *x, double *grad, double *com, int numVtx)
+double physcomp_center_of_mass_energy_gradient(pgoCenterOfMassEnergyStructHandle comEnergyHandle, const double *x, double *grad, double *com, int numVtx)
 {
   namespace ES = pgo::EigenSupport;
 
-  pgo::SolidDeformationModel::CenterOfMassEnergy *comEnergy = reinterpret_cast<pgo::SolidDeformationModel::CenterOfMassEnergy *>(comEnergyHandle);
+  pgo::PredefinedPotentialEnergies::CenterOfMassMatchingEnergy *comEnergy = reinterpret_cast<pgo::PredefinedPotentialEnergies::CenterOfMassMatchingEnergy *>(comEnergyHandle);
 
   ES::VXd xVec(numVtx * 3);
   for (int i = 0; i < numVtx * 3; i++) {
@@ -556,14 +558,14 @@ double pgo_center_of_mass_energy_gradient(pgoCenterOfMassEnergyStructHandle comE
 
   double energy;
   ES::V3d comVec;
-  comEnergy->func_gradient(xVec, gradVec, energy, comVec);
+  comEnergy->compute_com_and_energy_and_grad(xVec, comVec, energy, gradVec);
 
   ES::Mp<ES::VXd>(grad, numVtx * 3) = gradVec;
   ES::Mp<ES::V3d>(com, 3) = comVec;
   return energy;
 }
 
-void pgo_inverse_plasticity_opt(const char *tetMeshFile, const char *fixedVtxFile, const char *saveFolder, double stepSize, int verbose)
+void physcomp_inverse_plasticity_opt(const char *tetMeshFile, const char *fixedVtxFile, const char *saveFolder, double stepSize, int verbose)
 {
   pgoTetMeshStructHandle tetmeshRest = pgo_create_tetmesh_from_file(tetMeshFile);
   pgoTetMeshStructHandle tetmeshInit = pgo_create_tetmesh_from_file(tetMeshFile);
@@ -582,7 +584,7 @@ void pgo_inverse_plasticity_opt(const char *tetMeshFile, const char *fixedVtxFil
   int nele = pgo_tetmesh_get_num_tets(tetmeshTarget);
   std::vector<double> xOpt(n * 3 + nele * 6);
 
-  pgoQuasiStaticSimStructHandle quasiStaticStruct = pgo_create_quastic_static_sim_create_energies(tetmeshRest, tetmeshInit, fixedVertices.data(), (int)fixedVertices.size(), xOpt.data());
+  pgoQuasiStaticSimStructHandle quasiStaticStruct = physcomp_create_quastic_static_sim_create_energies(tetmeshRest, tetmeshInit, fixedVertices.data(), (int)fixedVertices.size(), xOpt.data());
 
   std::vector<double> xHat(n * 3);
   pgo_tetmesh_get_vertices(tetmeshTarget, xHat.data());
@@ -606,16 +608,16 @@ void pgo_inverse_plasticity_opt(const char *tetMeshFile, const char *fixedVtxFil
     }
 
     std::vector<double> GNGrad(nele * 6);
-    pgo_quastic_static_gauss_newton_gradient(quasiStaticStruct, dR_dx.data(), xOpt.data(), n, nele, GNGrad.data());
+    physcomp_quastic_static_gauss_newton_gradient(quasiStaticStruct, dR_dx.data(), xOpt.data(), n, nele, GNGrad.data());
 
     for (int i = 0; i < nele * 6; i++) {
       xOpt[n * 3 + i] -= stepSize * GNGrad[i];
     }
 
-    pgo_project_plastic_param(quasiStaticStruct, n, nele, xOpt.data(), 1e-5);
+    physcomp_project_plastic_param(quasiStaticStruct, n, nele, xOpt.data(), 1e-5);
 
     //
-    pgo_static_eq_step(quasiStaticStruct, xOpt.data(), n, nele, xOpt.data(), verbose);
+    physcomp_static_eq_step(quasiStaticStruct, xOpt.data(), n, nele, xOpt.data(), verbose);
 
     double eng = 0.0;
     for (int i = 0; i < n * 3; i++) {
@@ -655,13 +657,13 @@ void pgo_inverse_plasticity_opt(const char *tetMeshFile, const char *fixedVtxFil
 
   std::vector<double> xRest(n * 3 + nele * 6);
   // use tetmesh as initial mesh
-  pgo_create_quastic_static_sim(tetmeshInit, fixedVertices.data(), (int)fixedVertices.size(), xRest.data(), finalPlasticity.data(), false);
+  physcomp_create_quastic_static_sim(tetmeshInit, fixedVertices.data(), (int)fixedVertices.size(), xRest.data(), finalPlasticity.data(), false);
 
   pgoTetMeshStructHandle tetMeshRestOpt = pgo_tetmesh_update_vertices(tetMeshOpt, xRest.data());
   pgo_save_tetmesh_to_file(tetMeshRestOpt, (saveFolderStr + "/opt_rest.veg").c_str());
 }
 
-double pgo_stablity_preprocess(pgoTriMeshGeoStructHandle triMeshGeoHandle, const char *surfMeshFlattenedFile)
+double physcomp_stablity_preprocess(pgoTriMeshGeoStructHandle triMeshGeoHandle, const char *surfMeshFlattenedFile)
 {
   pgo::Mesh::TriMeshGeo *triMeshGeoPtr = reinterpret_cast<pgo::Mesh::TriMeshGeo *>(triMeshGeoHandle);
   pgo::Mesh::TriMeshGeo &triMeshGeo = *triMeshGeoPtr;
@@ -730,7 +732,7 @@ double pgo_stablity_preprocess(pgoTriMeshGeoStructHandle triMeshGeoHandle, const
   return minZ;
 }
 
-void pgo_stability_opt(const char *tetMeshFile, const char *fixedVtxFile, const char *saveFolder, int verbose)
+void physcomp_stability_opt(const char *tetMeshFile, const char *fixedVtxFile, const char *saveFolder, int verbose)
 {
   /////
   pgoTetMeshStructHandle tetmesh = pgo_create_tetmesh_from_file(tetMeshFile);
@@ -754,10 +756,10 @@ void pgo_stability_opt(const char *tetMeshFile, const char *fixedVtxFile, const 
   pgoTetMeshStructHandle tetmeshInit = pgo_create_tetmesh_from_file(tetMeshFile);  // tetMeshStaticEqRes;  //
 
   std::vector<double> xOpt(n * 3 + nele * 6);
-  pgoQuasiStaticSimStructHandle quasiStaticStruct = pgo_create_quastic_static_sim_create_energies(tetmeshRest, tetmeshInit, fixedVertices.data(), (int)fixedVertices.size(), xOpt.data());
+  pgoQuasiStaticSimStructHandle quasiStaticStruct = physcomp_create_quastic_static_sim_create_energies(tetmeshRest, tetmeshInit, fixedVertices.data(), (int)fixedVertices.size(), xOpt.data());
 
   // stand energy
-  pgoCenterOfMassEnergyStructHandle standEnergy = pgo_create_center_of_mass_energy(tetmeshInit);
+  pgoCenterOfMassEnergyStructHandle standEnergy = physcomp_create_center_of_mass_energy(tetmeshInit);
 
   pgoTetMeshStructHandle tetmeshTarget = pgo_create_tetmesh_from_file(tetMeshFile);
 
@@ -779,7 +781,7 @@ void pgo_stability_opt(const char *tetMeshFile, const char *fixedVtxFile, const 
 
   std::vector<double> tgtCoM(3);
   std::vector<double> projMat(9);
-  pgo_center_of_mass_energy_get_tgtCoM_projMat(standEnergy, tgtCoM.data(), projMat.data());
+  physcomp_center_of_mass_energy_get_tgtCoM_projMat(standEnergy, tgtCoM.data(), projMat.data());
 
   for (int iter = 0; iter < 1000; iter++) {
     double icpEng = 0.0;
@@ -804,23 +806,23 @@ void pgo_stability_opt(const char *tetMeshFile, const char *fixedVtxFile, const 
     coeff = 1000;
 
     std::vector<double> standGrad(n * 3);
-    double standEngVal = pgo_center_of_mass_energy_gradient(standEnergy, xOpt.data(), standGrad.data(), CoM.data(), n);
+    double standEngVal = physcomp_center_of_mass_energy_gradient(standEnergy, xOpt.data(), standGrad.data(), CoM.data(), n);
 
     for (int i = 0; i < n * 3; i++) {
       dR_dx[i] += standGrad[i] * coeff;
     }
 
     std::vector<double> GNGrad(nele * 6);
-    pgo_quastic_static_gauss_newton_gradient(quasiStaticStruct, dR_dx.data(), xOpt.data(), n, nele, GNGrad.data(), true);
+    physcomp_quastic_static_gauss_newton_gradient(quasiStaticStruct, dR_dx.data(), xOpt.data(), n, nele, GNGrad.data(), true);
 
     for (int i = 0; i < nele * 6; i++) {
       xOpt[n * 3 + i] -= stepSize * GNGrad[i];
     }
 
-    pgo_project_plastic_param(quasiStaticStruct, n, nele, xOpt.data(), 1e-5);
+    physcomp_project_plastic_param(quasiStaticStruct, n, nele, xOpt.data(), 1e-5);
 
     //
-    pgo_static_eq_step(quasiStaticStruct, xOpt.data(), n, nele, xOpt.data(), verbose);
+    physcomp_static_eq_step(quasiStaticStruct, xOpt.data(), n, nele, xOpt.data(), verbose);
 
     std::cout << "======iter: " << iter << " icp eng: " << icpEng << " standEngVal: " << standEngVal << std::endl;
     std::cout << "CoM: " << CoM[0] << " " << CoM[1] << " " << CoM[2] << std::endl;
@@ -852,7 +854,7 @@ void pgo_stability_opt(const char *tetMeshFile, const char *fixedVtxFile, const 
 
   std::vector<double> xRest(n * 3 + nele * 6);
   // use tetmesh as initial mesh
-  pgo_create_quastic_static_sim(tetmeshInit, fixedVertices.data(), (int)fixedVertices.size(), xRest.data(), finalPlasticity.data(), false);
+  physcomp_create_quastic_static_sim(tetmeshInit, fixedVertices.data(), (int)fixedVertices.size(), xRest.data(), finalPlasticity.data(), false);
 
   pgoTetMeshStructHandle tetMeshRestOpt = pgo_tetmesh_update_vertices(tetMeshOpt, xRest.data());
   pgo_save_tetmesh_to_file(tetMeshRestOpt, (saveFolderStr + "/stand_opt_rest.veg").c_str());

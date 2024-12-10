@@ -1,7 +1,10 @@
 # Physically Compatible 3D Object Modeling from a Single Image
 This repository contains the implementation code for the paper [Physically Compatible 3D Object Modeling from a Single Image](https://arxiv.org/abs/2405.20510) in **Neurips 2024** (**<span style="color:red;">Spotlight</span>**).
 
+<p align="justify">
 We present a computational framework that transforms single images into 3D physical objects. The visual geometry of a physical object in an image is determined by three orthogonal attributes: mechanical properties, external forces, and rest-shape geometry. Existing single-view 3D reconstruction methods often overlook this underlying composition, presuming rigidity or neglecting external forces. Consequently, the reconstructed objects fail to withstand real-world physical forces, resulting in instability or undesirable deformation -- diverging from their intended designs as depicted in the image. Our optimization framework addresses this by embedding physical compatibility into the reconstruction process. We explicitly decompose the three physical attributes and link them through static equilibrium, which serves as a hard constraint, ensuring that the optimized physical shapes exhibit desired physical behaviors. 
+</p>
+
 
 ![overview](assets/pipeline.png)
 (Left) The visual geometry of a physical object in an image is determined by three orthogonal attributes: mechanical properties, external forces, and rest-shape geometry. (Right) Given predefined mechanical properties and external forces, our pipeline optimizes the rest-shape geometry to ensure that the shape, when in a state of static equilibrium, aligns with the target image and meets stability criteria.
@@ -10,10 +13,9 @@ We present a computational framework that transforms single images into 3D physi
 ## Installation
 
 ### Prerequisites
-- __libpgo:__ We developed the code using [libpgo](https://github.com/bohanwang/libpgo/tree/physcomp) as the infrastructure. Follow the instructions to create conda environment and install libpgo.
+- __libpgo:__ We developed the code using [libpgo](https://github.com/bohanwang/libpgo) as the infrastructure. follow the following link to create conda environment and install libpgo.
 ```bash
 git clone git@github.com:bohanwang/libpgo.git
-git checkout physcomp
 cd libpgo
 mkdir -p projects
 cd projects
@@ -23,6 +25,7 @@ conda create --name physcomp python=3.10
 conda activate physcomp
 conda install tbb tbb-devel mkl mkl-devel
 export CMAKE_BUILD_PARALLEL_LEVEL=8
+cd ..
 pip install -v -e .
 pip install trimesh tetgen
 ```
@@ -39,6 +42,7 @@ The required files for these examples are located in the `examples/` directory.
 To obtain the results, use the following commands:
 
 ```bash
+cd projects/PhysComp
 python scripts/test.py
 ```
 ---
