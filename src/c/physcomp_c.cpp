@@ -63,6 +63,8 @@ struct pgoQuasiStaticSimStruct
 
   std::shared_ptr<pgo::NonlinearOptimization::NewtonRaphsonSolver> solverPosOnly;
   std::shared_ptr<pgo::EigenSupport::EigenMKLPardisoSupport> linearSolver;
+
+  pgo::EigenSupport::VXd fext;
 };
 
 //// NeurIPS
@@ -270,13 +272,15 @@ pgoQuasiStaticSimStructHandle physcomp_create_quastic_static_sim_create_energies
     }
   }
 
+  pgoQuasiStaticSimStruct *simStruct = new pgoQuasiStaticSimStruct;
+
   // gravity
-  ES::VXd fext(n3);
+  simStruct->fext.setZero(n3);
   for (int vi = 0; vi < n; vi++) {
     fext.segment<3>(vi * 3) = ES::V3d(0, 0, 9.8) * vertexMasses[vi];
   }
 
-  std::shared_ptr<pgo::PredefinedPotentialEnergies::LinearPotentialEnergy> externalForcesEnergy = std::make_shared<pgo::PredefinedPotentialEnergies::LinearPotentialEnergy>(fext);
+  std::shared_ptr<pgo::PredefinedPotentialEnergies::LinearPotentialEnergy> externalForcesEnergy = std::make_shared<pgo::PredefinedPotentialEnergies::LinearPotentialEnergy>(simStruct->fext);
 
   // plasicity smoothness
   ES::SpMatD L;
@@ -331,7 +335,6 @@ pgoQuasiStaticSimStructHandle physcomp_create_quastic_static_sim_create_energies
   solver->analyze(df_dx);
 
   ///
-  pgoQuasiStaticSimStruct *simStruct = new pgoQuasiStaticSimStruct;
   simStruct->simMesh = simMesh;
   simStruct->dmm = dmm;
 
@@ -356,7 +359,6 @@ pgoQuasiStaticSimStructHandle physcomp_create_quastic_static_sim_create_energies
   simStruct->solverPosOnly = solverPosOnly;
 
   simStruct->linearSolver = solver;
-
   for (int i = 0; i < n3 + nele * 6; i++) {
     xOpt[i] = x[i];
   }

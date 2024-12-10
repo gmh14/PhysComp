@@ -170,11 +170,11 @@ if __name__ == "__main__":
 
     # matching
     mesh_name = "e547b70f8bb549e3ad5cea9a4eed800d"
-    save_folder = os.path.join("examples", "neurips2024", mesh_name)
+    save_folder = os.path.join("examples", mesh_name)
     matching(save_folder)
     
     # stability
     mesh_name = "unicorn"
-    save_folder = os.path.join("examples", "neurips2024", mesh_name)
+    save_folder = os.path.join("examples", mesh_name)
     stabilize(save_folder)
     
