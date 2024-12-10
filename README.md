@@ -23,6 +23,7 @@ conda create --name physcomp python=3.10
 conda activate physcomp
 conda install tbb tbb-devel mkl mkl-devel
 export CMAKE_BUILD_PARALLEL_LEVEL=8
+cd ..
 pip install -v -e .
 pip install trimesh tetgen
 ```
@@ -39,6 +40,7 @@ The required files for these examples are located in the `examples/` directory.
 To obtain the results, use the following commands:
 
 ```bash
+cd projects/PhysComp
 python scripts/test.py
 ```
 ---

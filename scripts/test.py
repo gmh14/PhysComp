@@ -115,6 +115,7 @@ def stabilize(save_folder):
     
     init_trimesh = trimesh.load_mesh(os.path.join(save_folder, "make_it_stand_init.obj"))
     init_trimeshgeo = pypgo.create_trimeshgeo(init_trimesh.vertices.flatten(), init_trimesh.faces.flatten())
+    
     min_z = pypgo.stablity_preprocess(init_trimeshgeo, os.path.join(save_folder, "make_it_stand_init_flattened.obj"))
     
     surfmesh_flattened = trimesh.load_mesh(os.path.join(
